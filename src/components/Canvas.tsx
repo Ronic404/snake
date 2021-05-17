@@ -21,7 +21,7 @@ const Canvas: FC = () => {
   const refField = useRef<HTMLCanvasElement | null>(null);
   const [fieldSize] = useState<number>(400);
   const [cellSize] = useState<number>(20);
-  const [applePosition] = useState<number[]>([randomPlace(), randomPlace()]);
+  const [applePosition, setApplePosition] = useState<{x: number, y: number}>({x: randomPlace(), y: randomPlace()});
   const [snake, setSnake] = useState<{x: number, y: number}[]>([
     {x: 0, y: fieldSize / 2},
     {x: 20, y: fieldSize / 2},
@@ -54,16 +54,24 @@ const Canvas: FC = () => {
     }
     // draw apple in random place // 3
     ctx.fillStyle = '#c43434';
-    // ctx.fillRect(applePosition[0], applePosition[1], cellSize, cellSize);
     ctx.font = '24px Arial';
-    ctx.fillText('', applePosition[0], applePosition[1]);
+    ctx.textBaseline = 'top';
+    ctx.fillText('', applePosition.x, applePosition.y);
   }, [applePosition, cellSize, fieldSize, snake])
   // ==============================================
+
+  const eating = (ctx: CustomCanvasType) => {
+    if (!ctx) throw new Error("Where's my 2d context?!");
+    if (snake[snake.length-1].x === applePosition.x && snake[snake.length-1].y === applePosition.y) {
+      setApplePosition({x: randomPlace(), y: randomPlace()});
+      setSnake([{ x: snake[0].x, y: snake[0].y }, ...snake ]);
+    }
+  }
   
   useEffect(() => {
     const ctx: CustomCanvasType = refField.current?.getContext('2d');
     draw(ctx);
-    // console.log('bbbb');
+    eating(ctx);
     // moving
     // const changePosition = () => {
     //   if (currentPosition[0] > fieldSize) {
