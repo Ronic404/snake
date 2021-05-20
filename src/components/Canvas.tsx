@@ -1,6 +1,9 @@
 import { FC, useCallback, useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
 
+import { IPlacePoint } from '../interfaces';
+import randomPlace from '../tools/randomPlace';
+
 const DivCanvas = styled.div`
   text-align: center;
 `;
@@ -12,20 +15,14 @@ const FieldCanvas = styled.canvas`
 type CustomCanvasType = CanvasRenderingContext2D | null | undefined;
 
 const Canvas: FC = () => {
-  // TOOLS //
-  const randomPlace = (): number => {
-    return Math.floor(Math.random() * fieldSize / cellSize) * cellSize;
-  }
-  
-  // Constants //
   const refField = useRef<HTMLCanvasElement | null>(null);
   const [fieldSize] = useState<number>(400);
   const [cellSize] = useState<number>(20);
-  const [applePosition, setApplePosition] = useState<{x: number, y: number}>({x: randomPlace(), y: randomPlace()});
-  const [snake, setSnake] = useState<{x: number, y: number}[]>([
-    {x: 0, y: fieldSize / 2},
-    {x: 20, y: fieldSize / 2},
+  const [applePosition, setApplePosition] = useState<IPlacePoint>(randomPlace(fieldSize, cellSize));
+  const [snake, setSnake] = useState<IPlacePoint[]>([
     {x: 40, y: fieldSize / 2},
+    {x: 20, y: fieldSize / 2},
+    {x: 0, y: fieldSize / 2},
   ]);
   const [direction, setDirection] = useState<string>('right');
 
@@ -48,8 +45,8 @@ const Canvas: FC = () => {
       }
     }
     // draw snake // 2
-    for (let i = 0; i < snake.length; i++) {
-      ctx.fillStyle = (i === snake.length - 1) ? '#085750' : '#08aa50';
+    for (let i = snake.length - 1; i >= 0; i--) {
+      ctx.fillStyle = (i === 0) ? '#085750' : '#08aa50';
       ctx.fillRect(snake[i].x, snake[i].y, cellSize, cellSize);
     }
     // draw apple in random place // 3
@@ -60,30 +57,19 @@ const Canvas: FC = () => {
   }, [applePosition, cellSize, fieldSize, snake])
   // ==============================================
 
-  const eating = (ctx: CustomCanvasType) => {
+  const eating = useCallback((ctx: CustomCanvasType): void => {
     if (!ctx) throw new Error("Where's my 2d context?!");
-    if (snake[snake.length-1].x === applePosition.x && snake[snake.length-1].y === applePosition.y) {
-      setApplePosition({x: randomPlace(), y: randomPlace()});
-      setSnake([{ x: snake[0].x, y: snake[0].y }, ...snake ]);
+    if (snake[0].x === applePosition.x && snake[0].y === applePosition.y) {
+      setApplePosition(randomPlace(fieldSize, cellSize));
+      setSnake([...snake, { x: snake[snake.length - 1].x, y: snake[snake.length - 1].y } ]);
     }
-  }
+  }, [applePosition.x, applePosition.y, cellSize, fieldSize, snake])
   
   useEffect(() => {
     const ctx: CustomCanvasType = refField.current?.getContext('2d');
     draw(ctx);
     eating(ctx);
-    // moving
-    // const changePosition = () => {
-    //   if (currentPosition[0] > fieldSize) {
-    //     setCurrentPosition([-cellSize, fieldSize / 2, cellSize * 3, cellSize]);
-    //   } else {
-    //     setCurrentPosition(startPosition);
-    //     setStartPosition([currentPosition[0] + cellSize, currentPosition[1], currentPosition[2], currentPosition[3]])
-    //   }
-    // }
-    // const updateSnakePosition = setTimeout(changePosition, 1000);
-    // return () => clearTimeout(updateSnakePosition);
-  }, [draw])
+  }, [draw, eating])
 
   const moveDirection = useCallback((e: globalThis.KeyboardEvent) => {
     const newSnake = snake.slice(0);
@@ -91,39 +77,55 @@ const Canvas: FC = () => {
         case 'KeyW':
         case 'ArrowUp': 
           if (direction === 'down') return;
-          newSnake.push({ x: newSnake[newSnake.length - 1].x, y: newSnake[newSnake.length -1].y - cellSize });
-          newSnake.shift();
+          if (snake[0].y === 0) {
+            newSnake.unshift({ x: newSnake[0].x, y: fieldSize - cellSize });
+          } else {
+            newSnake.unshift({ x: newSnake[0].x, y: newSnake[0].y - cellSize });
+          }
+          newSnake.pop();
           setSnake(newSnake);
           setDirection('up');
           break;
         case 'KeyA':
         case 'ArrowLeft': 
           if (direction === 'right') return;
-          newSnake.push({ x: newSnake[newSnake.length - 1].x - cellSize, y: newSnake[newSnake.length -1].y });
-          newSnake.shift();
+          if (snake[0].x === 0) {
+            newSnake.unshift({ x: fieldSize - cellSize, y: newSnake[0].y });
+          } else {
+            newSnake.unshift({ x: newSnake[0].x - cellSize, y: newSnake[0].y });
+          }
+          newSnake.pop();
           setSnake(newSnake);
           setDirection('left');
           break;
         case 'KeyS':
         case 'ArrowDown': 
           if (direction === 'up') return;
-          newSnake.push({ x: newSnake[newSnake.length - 1].x, y: newSnake[newSnake.length -1].y + cellSize });
-          newSnake.shift();
+          if (snake[0].y === fieldSize - cellSize) {
+            newSnake.unshift({ x: newSnake[0].x, y: 0 });
+          } else {
+            newSnake.unshift({ x: newSnake[0].x, y: newSnake[0].y + cellSize });
+          }
+          newSnake.pop();
           setSnake(newSnake);
           setDirection('down');
           break;
         case 'KeyD':
         case 'ArrowRight': 
         if (direction === 'left') return;
-        newSnake.push({ x: newSnake[newSnake.length - 1].x + cellSize, y: newSnake[newSnake.length -1].y });
-        newSnake.shift();
+        if (snake[0].x === fieldSize - cellSize) {
+          newSnake.unshift({ x: 0, y: newSnake[0].y });
+        } else {
+          newSnake.unshift({ x: newSnake[0].x + cellSize, y: newSnake[0].y });
+        }
+        newSnake.pop();
         setSnake(newSnake);
         setDirection('right');
           break;
         default: 
           return;
       }
-  }, [cellSize, direction, snake]);
+  }, [cellSize, direction, fieldSize, snake]);
 
   useEffect(() => {
     window.addEventListener('keydown', moveDirection);
