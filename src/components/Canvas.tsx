@@ -1,7 +1,7 @@
 import { FC, useCallback, useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
 
-import { IPlacePoint } from '../interfaces';
+import { IPlacePoint, CustomCanvasType } from '../interfaces';
 import randomPlace from '../tools/randomPlace';
 
 const DivCanvas = styled.div`
@@ -12,19 +12,18 @@ const FieldCanvas = styled.canvas`
   /* border: 5px solid brown; */
 `;
 
-type CustomCanvasType = CanvasRenderingContext2D | null | undefined;
-
 const Canvas: FC = () => {
   const refField = useRef<HTMLCanvasElement | null>(null);
   const [fieldSize] = useState<number>(400);
   const [cellSize] = useState<number>(20);
   const [applePosition, setApplePosition] = useState<IPlacePoint>(randomPlace(fieldSize, cellSize));
-  const [snake, setSnake] = useState<IPlacePoint[]>([
+  const [initialSnake] = useState<IPlacePoint[]> ([
     {x: 40, y: fieldSize / 2},
     {x: 20, y: fieldSize / 2},
     {x: 0, y: fieldSize / 2},
   ]);
-  const [direction, setDirection] = useState<string>('right');
+  const [snake, setSnake] = useState<IPlacePoint[]>(initialSnake);
+  const [direction, setDirection] = useState<string | null>('right');
 
   console.log('render');
   
@@ -64,55 +63,38 @@ const Canvas: FC = () => {
       setSnake([...snake, { x: snake[snake.length - 1].x, y: snake[snake.length - 1].y } ]);
     }
   }, [applePosition.x, applePosition.y, cellSize, fieldSize, snake])
-  
-  useEffect(() => {
-    const ctx: CustomCanvasType = refField.current?.getContext('2d');
-    draw(ctx);
-    eating(ctx);
-  }, [draw, eating])
 
-  const moveDirection = useCallback((e: globalThis.KeyboardEvent) => {
+  const moving = useCallback((): void => {
     const newSnake = snake.slice(0);
-      switch (e.code) {
-        case 'KeyW':
-        case 'ArrowUp': 
-          if (direction === 'down') return;
-          if (snake[0].y === 0) {
-            newSnake.unshift({ x: newSnake[0].x, y: fieldSize - cellSize });
-          } else {
-            newSnake.unshift({ x: newSnake[0].x, y: newSnake[0].y - cellSize });
-          }
-          newSnake.pop();
-          setSnake(newSnake);
-          setDirection('up');
-          break;
-        case 'KeyA':
-        case 'ArrowLeft': 
-          if (direction === 'right') return;
-          if (snake[0].x === 0) {
-            newSnake.unshift({ x: fieldSize - cellSize, y: newSnake[0].y });
-          } else {
-            newSnake.unshift({ x: newSnake[0].x - cellSize, y: newSnake[0].y });
-          }
-          newSnake.pop();
-          setSnake(newSnake);
-          setDirection('left');
-          break;
-        case 'KeyS':
-        case 'ArrowDown': 
-          if (direction === 'up') return;
-          if (snake[0].y === fieldSize - cellSize) {
-            newSnake.unshift({ x: newSnake[0].x, y: 0 });
-          } else {
-            newSnake.unshift({ x: newSnake[0].x, y: newSnake[0].y + cellSize });
-          }
-          newSnake.pop();
-          setSnake(newSnake);
-          setDirection('down');
-          break;
-        case 'KeyD':
-        case 'ArrowRight': 
-        if (direction === 'left') return;
+    switch (direction) {
+      case 'up':
+        if (snake[0].y === 0) {
+          newSnake.unshift({ x: newSnake[0].x, y: fieldSize - cellSize });
+        } else {
+          newSnake.unshift({ x: newSnake[0].x, y: newSnake[0].y - cellSize });
+        }
+        newSnake.pop();
+        setSnake(newSnake);
+        break;
+      case 'left':
+        if (snake[0].x === 0) {
+          newSnake.unshift({ x: fieldSize - cellSize, y: newSnake[0].y });
+        } else {
+          newSnake.unshift({ x: newSnake[0].x - cellSize, y: newSnake[0].y });
+        }
+        newSnake.pop();
+        setSnake(newSnake);
+        break;
+      case 'down':
+        if (snake[0].y === fieldSize - cellSize) {
+          newSnake.unshift({ x: newSnake[0].x, y: 0 });
+        } else {
+          newSnake.unshift({ x: newSnake[0].x, y: newSnake[0].y + cellSize });
+        }
+        newSnake.pop();
+        setSnake(newSnake);
+        break;
+      case 'right':
         if (snake[0].x === fieldSize - cellSize) {
           newSnake.unshift({ x: 0, y: newSnake[0].y });
         } else {
@@ -120,17 +102,65 @@ const Canvas: FC = () => {
         }
         newSnake.pop();
         setSnake(newSnake);
-        setDirection('right');
           break;
+      default: 
+        return;
+    }
+  }, [cellSize, direction, fieldSize, snake]);
+
+  const gameOver = useCallback(() => {
+    for (let i = 2; i < snake.length; i++) {
+      if (snake[i].x === snake[0].x && snake[i].y === snake[0].y) {
+        setDirection(null);
+        setSnake(initialSnake);
+      }
+    }
+  }, [initialSnake, snake]);
+
+  const moveDirection = useCallback((e: globalThis.KeyboardEvent) => {
+      switch (e.code) {
+        case 'KeyW':
+        case 'ArrowUp': 
+          if (direction === 'down') return;
+          setDirection('up');
+          moving();
+          break;
+        case 'KeyA':
+        case 'ArrowLeft': 
+          if (direction === 'right') return;
+          setDirection('left');
+          moving();
+          break;
+        case 'KeyS':
+        case 'ArrowDown': 
+          if (direction === 'up') return;
+          setDirection('down');
+          moving();
+          break;
+        case 'KeyD':
+        case 'ArrowRight': 
+          if (direction === 'left') return;
+          setDirection('right');
+          moving();
+            break;
         default: 
           return;
       }
-  }, [cellSize, direction, fieldSize, snake]);
+  }, [direction, moving]);
+
+  useEffect(() => {
+    const ctx: CustomCanvasType = refField.current?.getContext('2d');
+    draw(ctx);
+    eating(ctx);
+    gameOver();
+    const speed = setInterval(moving, 300);
+    return () => { clearInterval(speed) }
+  }, [draw, eating, gameOver, moving]);
 
   useEffect(() => {
     window.addEventListener('keydown', moveDirection);
     return () => { window.removeEventListener('keydown', moveDirection) }
-  }, [cellSize, direction, moveDirection, snake])
+  }, [cellSize, direction, moveDirection, snake]);
 
   return (
     <DivCanvas>
@@ -140,41 +170,3 @@ const Canvas: FC = () => {
 }
 
 export default Canvas;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// grid
-  // ctx.beginPath();
-  // ctx.lineWidth = 1;
-  // for (let i = 0; i <= fieldSize; i += cellSize) {
-  //   ctx.moveTo(0, i);
-  //   ctx.lineTo(fieldSize, i);
-  // }
-  // for (let i = 0; i <= fieldSize; i += cellSize) {
-  //   ctx.moveTo(i, 0);
-  //   ctx.lineTo(i, fieldSize);
-  // }
-  // ctx.stroke();
