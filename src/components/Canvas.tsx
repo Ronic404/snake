@@ -8,6 +8,11 @@ import randomPlace from '../tools/randomPlace';
 import { IState } from '../redux/reducer';
 import { changeDirection, changeSnake } from '../redux/actions';
 
+import head_up from '../assets/img/head-up.png';
+import head_right from '../assets/img/head-right.png';
+import head_down from '../assets/img/head-down.png';
+import head_left from '../assets/img/head-left.png';
+
 const DivCanvas = styled.div`
   text-align: center;
 `;
@@ -40,8 +45,26 @@ const Canvas: FC = () => {
       }
     }
     // draw snake //
+    const img: CanvasImageSource = new Image();
+    switch (direction) {
+      case 'up':
+        img.src = head_up;
+        break;
+      case 'right':
+        img.src = head_right;
+        break;
+      case 'down':
+        img.src = head_down;
+        break;
+      case 'left':
+        img.src = head_left;
+        break;
+    }
+    img.onload = () => {
+      ctx.drawImage(img, snake[0].x, snake[0].y, cellSize, cellSize);
+    }
     for (let i = snake.length - 1; i >= 0; i--) {
-      ctx.fillStyle = (i === 0) ? '#085750' : '#08aa50';
+      ctx.fillStyle = (i === 0) ? 'transparent' : '#08aa50';
       ctx.fillRect(snake[i].x, snake[i].y, cellSize, cellSize);
     }
     // draw apple in random place //
@@ -49,7 +72,7 @@ const Canvas: FC = () => {
     ctx.font = '24px Arial';
     ctx.textBaseline = 'top';
     ctx.fillText('', applePosition.x, applePosition.y);
-  }, [applePosition, cellSize, fieldSize, snake])
+  }, [applePosition.x, applePosition.y, cellSize, direction, fieldSize, snake])
 
   const eating = useCallback((ctx: CustomCanvasType): void => {
     if (!ctx) throw new Error("Where's my 2d context?!");
@@ -68,8 +91,6 @@ const Canvas: FC = () => {
         } else {
           newSnake.unshift({ x: newSnake[0].x, y: newSnake[0].y - cellSize });
         }
-        newSnake.pop();
-        dispatch(changeSnake(newSnake));
         break;
       case 'left':
         if (snake[0].x === 0) {
@@ -77,8 +98,6 @@ const Canvas: FC = () => {
         } else {
           newSnake.unshift({ x: newSnake[0].x - cellSize, y: newSnake[0].y });
         }
-        newSnake.pop();
-        dispatch(changeSnake(newSnake));
         break;
       case 'down':
         if (snake[0].y === fieldSize - cellSize) {
@@ -86,8 +105,6 @@ const Canvas: FC = () => {
         } else {
           newSnake.unshift({ x: newSnake[0].x, y: newSnake[0].y + cellSize });
         }
-        newSnake.pop();
-        dispatch(changeSnake(newSnake));
         break;
       case 'right':
         if (snake[0].x === fieldSize - cellSize) {
@@ -95,12 +112,12 @@ const Canvas: FC = () => {
         } else {
           newSnake.unshift({ x: newSnake[0].x + cellSize, y: newSnake[0].y });
         }
-        newSnake.pop();
-        dispatch(changeSnake(newSnake));
-          break;
+        break;
       default: 
         return;
     }
+    newSnake.pop();
+    dispatch(changeSnake(newSnake));
   }, [cellSize, direction, dispatch, fieldSize, snake]);
 
   const gameOver = useCallback(() => {
@@ -116,31 +133,28 @@ const Canvas: FC = () => {
       switch (e.code) {
         case 'KeyW':
         case 'ArrowUp': 
-          if (direction === 'down') return;
+          if (direction === 'down' || direction === 'up') return;
           dispatch(changeDirection('up'));
-          moving();
           break;
         case 'KeyA':
         case 'ArrowLeft': 
-          if (direction === 'right') return;
+          if (direction === 'right' || direction === 'left') return;
           dispatch(changeDirection('left'));
-          moving();
           break;
         case 'KeyS':
         case 'ArrowDown': 
-          if (direction === 'up') return;
+          if (direction === 'up' || direction === 'down') return;
           dispatch(changeDirection('down'));
-          moving();
           break;
         case 'KeyD':
         case 'ArrowRight': 
-          if (direction === 'left') return;
+          if (direction === 'left' || direction === 'right') return;
           dispatch(changeDirection('right'));
-          moving();
-            break;
+          break;
         default: 
           return;
       }
+      moving();
   }, [direction, dispatch, moving]);
 
   useEffect(() => {
@@ -148,7 +162,7 @@ const Canvas: FC = () => {
     draw(ctx);
     eating(ctx);
     gameOver();
-    const speed = setInterval(moving, 300);
+    const speed = setInterval(moving, 200);
     return () => { clearInterval(speed) }
   }, [draw, eating, gameOver, moving]);
 

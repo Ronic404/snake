@@ -12,12 +12,12 @@ export interface IState {
 const initialState: IState = {
   fieldSize: 400,
   cellSize: 20,
-  direction: 'right',
+  direction: null,
   get initialSnake() {
     return [
       {x: (this.fieldSize / this.cellSize) * 2, y: this.fieldSize / 2},
       {x: (this.fieldSize / this.cellSize) * 1, y: this.fieldSize / 2},
-      {x: 0, y: this.fieldSize / 2},
+      {x: (this.fieldSize / this.cellSize) * 0, y: this.fieldSize / 2},
     ]
   },
   get snake() {
@@ -36,6 +36,16 @@ export default function reducer(state: IState = initialState, action: IAction): 
       return {
         ...state,
         snake: action.payload,
+      }
+    case actionTypes.CHANGE_FIELD_SIZE:
+      return {
+        ...state,
+        fieldSize: +action.payload,
+      }
+    case actionTypes.CHANGE_CELL_SIZE:
+      return {
+        ...state,
+        cellSize: +action.payload,
       }
     default:
       return state;
