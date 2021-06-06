@@ -5,6 +5,8 @@ export enum actionTypes {
   CHANGE_SNAKE = 'CHANGE_SNAKE',
   CHANGE_FIELD_SIZE = 'CHANGE_FIELD_SIZE',
   CHANGE_CELL_SIZE = 'CHANGE_CELL_SIZE',
+  CHANGE_CHECK = 'CHANGE_CHECK',
+  RESET_CHECK = 'RESET_CHECK',
 }
 
 interface ICD {
@@ -26,7 +28,15 @@ interface ICC {
   payload: number;
 }
 
-export type IAction = ICD | ICS | ICF | ICC; 
+interface ICCh {
+  type: actionTypes.CHANGE_CHECK;
+}
+
+interface IRCh {
+  type: actionTypes.RESET_CHECK;
+}
+
+export type IAction = ICD | ICS | ICF | ICC | ICCh | IRCh; 
 
 export function changeDirection(direction: string | null): ICD {
   return {
@@ -53,5 +63,17 @@ export function changeCellSize(size: number): ICC {
   return {
     type: actionTypes.CHANGE_CELL_SIZE,
     payload: size,
+  }
+}
+
+export function changeCheck(): ICCh {
+  return {
+    type: actionTypes.CHANGE_CHECK,
+  }
+}
+
+export function resetCheck(): IRCh {
+  return {
+    type: actionTypes.RESET_CHECK,
   }
 }

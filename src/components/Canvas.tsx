@@ -6,7 +6,7 @@ import { IPlacePoint, CustomCanvasType } from '../interfaces';
 import randomPlace from '../tools/randomPlace';
 
 import { IState } from '../redux/reducer';
-import { changeDirection, changeSnake } from '../redux/actions';
+import { changeCheck, changeDirection, changeSnake, resetCheck } from '../redux/actions';
 
 import head_up from '../assets/img/head-up.png';
 import head_right from '../assets/img/head-right.png';
@@ -22,7 +22,7 @@ const FieldCanvas = styled.canvas`
 `;
 
 const Canvas: FC = () => {
-  const { fieldSize, cellSize, initialSnake, snake, direction } = useSelector((state: IState) => state);
+  const { fieldSize, cellSize, initialSnake, snake, direction, factCheck, planCheck } = useSelector((state: IState) => state);
   const [applePosition, setApplePosition] = useState<IPlacePoint>(randomPlace(fieldSize, cellSize));
   const refField = useRef<HTMLCanvasElement | null>(null);
   const dispatch = useDispatch();
@@ -78,9 +78,16 @@ const Canvas: FC = () => {
     if (!ctx) throw new Error("Where's my 2d context?!");
     if (snake[0].x === applePosition.x && snake[0].y === applePosition.y) {
       setApplePosition(randomPlace(fieldSize, cellSize));
-      dispatch(changeSnake([...snake, { x: snake[snake.length - 1].x, y: snake[snake.length - 1].y } ]))
+      dispatch(changeSnake([...snake, { x: snake[snake.length - 1].x, y: snake[snake.length - 1].y } ]));
+      dispatch(changeCheck());
     }
-  }, [applePosition.x, applePosition.y, cellSize, dispatch, fieldSize, snake])
+    if (factCheck === planCheck) {
+      alert('Средний чек в норме. А что у нас с количеством сделок?');
+      dispatch(changeDirection(null)); 
+      dispatch(changeSnake(initialSnake));
+      dispatch(resetCheck());
+    }
+  }, [applePosition.x, applePosition.y, cellSize, dispatch, factCheck, fieldSize, initialSnake, planCheck, snake])
 
   const moving = useCallback((): void => {
     const newSnake = snake.slice(0);
@@ -162,7 +169,7 @@ const Canvas: FC = () => {
     draw(ctx);
     eating(ctx);
     gameOver();
-    const speed = setInterval(moving, 200);
+    const speed = setInterval(moving, 150);
     return () => { clearInterval(speed) }
   }, [draw, eating, gameOver, moving]);
 

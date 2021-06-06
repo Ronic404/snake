@@ -7,6 +7,8 @@ export interface IState {
   direction: string | null;
   initialSnake: IPlacePoint[];
   snake: IPlacePoint[];
+  factCheck: number;
+  planCheck: number;
 }
 
 const initialState: IState = {
@@ -23,6 +25,8 @@ const initialState: IState = {
   get snake() {
     return this.initialSnake;
   },
+  factCheck: 3000,
+  planCheck: 20000,
 }
 
 export default function reducer(state: IState = initialState, action: IAction): IState {
@@ -46,6 +50,16 @@ export default function reducer(state: IState = initialState, action: IAction): 
       return {
         ...state,
         cellSize: +action.payload,
+      }
+    case actionTypes.CHANGE_CHECK:
+      return {
+        ...state,
+        factCheck: state.factCheck + 1000,
+      }
+    case actionTypes.RESET_CHECK:
+      return {
+        ...state,
+        factCheck: 3000,
       }
     default:
       return state;
